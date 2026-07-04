@@ -1,0 +1,22 @@
+[package]
+name = "funcvec"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+default-run = "funcvec"
+description = "Find likely duplicate Rust functions with language-server extraction and local embeddings."
+readme = "README.md"
+documentation = "https://docs.rs/funcvec"
+categories = ["command-line-utilities", "development-tools"]
+keywords = ["rust", "duplicates", "embeddings", "cli"]
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+funcvec-core = { version = "0.1.0", path = "../funcvec-core" }
+
+[dev-dependencies]
+tempfile.workspace = true

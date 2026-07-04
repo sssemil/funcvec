@@ -1,0 +1,30 @@
+[package]
+name = "funcvec-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Core extraction, embedding, scoring, and reporting logic for funcvec."
+readme = "README.md"
+documentation = "https://docs.rs/funcvec-core"
+categories = ["development-tools"]
+keywords = ["rust", "duplicates", "embeddings"]
+
+[dependencies]
+anyhow.workspace = true
+cargo_metadata.workspace = true
+dirs.workspace = true
+fastembed.workspace = true
+hex.workspace = true
+lsp-types.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+url.workspace = true
+walkdir.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
