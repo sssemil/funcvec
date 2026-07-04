@@ -1,6 +1,6 @@
 [package]
 name = "funcvec"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -16,7 +16,7 @@ keywords = ["rust", "duplicates", "embeddings", "cli"]
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
-funcvec-core = { version = "0.1.0", path = "../funcvec-core" }
+funcvec-core = { version = "0.1.1", path = "../funcvec-core" }
 
 [dev-dependencies]
 tempfile.workspace = true
