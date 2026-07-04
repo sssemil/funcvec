@@ -17,11 +17,11 @@ use funcvec_core::{
   funcvec
   funcvec --provider none --top-k 10
   funcvec fixtures/dupe_lab --provider lexical --threshold 0.72
-  funcvec report fixtures/dupe_lab --provider nomic
-  funcvec eval fixtures/dupe_lab --provider nomic --models nomic-v1,nomic-v1.5
+  funcvec report fixtures/dupe_lab --provider lexical
+  funcvec eval fixtures/dupe_lab --provider lexical
   cargo funcvec --provider none
 
-Native Nomic downloads model files once into a local model cache and runs without a daemon.
+Native Nomic is available when installed with `cargo install funcvec --features native-nomic`.
 Ollama setup, optional:
   ollama serve
   ollama pull nomic-embed-text")]
@@ -62,7 +62,7 @@ struct CommonArgs {
     #[arg(long, value_enum, default_value_t = CliFormat::Table)]
     format: CliFormat,
 
-    #[arg(long, value_enum, default_value_t = CliProvider::Nomic)]
+    #[arg(long, value_enum, default_value_t = default_cli_provider())]
     provider: CliProvider,
 
     #[arg(long)]
@@ -289,6 +289,14 @@ fn default_threshold(provider: ProviderKind) -> f32 {
     }
 }
 
+fn default_cli_provider() -> CliProvider {
+    if cfg!(feature = "native-nomic") {
+        CliProvider::Nomic
+    } else {
+        CliProvider::Lexical
+    }
+}
+
 fn eval_models(args: &EvalArgs, provider: ProviderKind) -> Vec<String> {
     if !args.models.is_empty() {
         return args.models.clone();
@@ -331,18 +339,27 @@ mod tests {
     }
 
     #[test]
-    fn no_args_defaults_to_report_current_dir_with_nomic() {
+    fn no_args_defaults_to_report_current_dir_with_build_default_provider() {
         let args = parse_args(["funcvec"]).unwrap();
 
         assert!(args.command.is_none());
         assert_eq!(args.common.path, PathBuf::from("."));
         let config = config(&args.common).unwrap();
-        assert_eq!(config.provider, ProviderKind::Nomic);
-        assert_eq!(
-            config.model.as_deref(),
-            Some(funcvec_core::default_nomic_model())
-        );
-        assert_eq!(config.threshold, 0.95);
+        #[cfg(feature = "native-nomic")]
+        {
+            assert_eq!(config.provider, ProviderKind::Nomic);
+            assert_eq!(
+                config.model.as_deref(),
+                Some(funcvec_core::default_nomic_model())
+            );
+            assert_eq!(config.threshold, 0.95);
+        }
+        #[cfg(not(feature = "native-nomic"))]
+        {
+            assert_eq!(config.provider, ProviderKind::Lexical);
+            assert_eq!(config.model.as_deref(), None);
+            assert_eq!(config.threshold, 0.72);
+        }
     }
 
     #[test]
@@ -385,18 +402,26 @@ mod tests {
     }
 
     #[test]
-    fn eval_subcommand_uses_nomic_matrix_defaults() {
+    fn eval_subcommand_uses_default_provider() {
         let args = parse_args(["funcvec", "eval"]).unwrap();
         let Some(Command::Eval(eval)) = args.command else {
             panic!("expected eval subcommand");
         };
         let config = config(&eval.common).unwrap();
 
-        assert_eq!(config.provider, ProviderKind::Nomic);
-        assert_eq!(
-            eval_models(&eval, config.provider),
-            vec![funcvec_core::default_nomic_model().to_owned()]
-        );
+        #[cfg(feature = "native-nomic")]
+        {
+            assert_eq!(config.provider, ProviderKind::Nomic);
+            assert_eq!(
+                eval_models(&eval, config.provider),
+                vec![funcvec_core::default_nomic_model().to_owned()]
+            );
+        }
+        #[cfg(not(feature = "native-nomic"))]
+        {
+            assert_eq!(config.provider, ProviderKind::Lexical);
+            assert!(eval_models(&eval, config.provider).is_empty());
+        }
     }
 
     #[test]

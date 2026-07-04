@@ -1,10 +1,11 @@
 use std::{
     net::IpAddr,
-    path::{Path, PathBuf},
+    path::Path,
     time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result, anyhow, bail};
+#[cfg(feature = "native-nomic")]
 use fastembed::{EmbeddingModel, TextEmbedding, TextInitOptions};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -94,8 +95,17 @@ pub fn embeddings_for(
             provider.embed_functions(functions, cache_root, started)
         }
         ProviderKind::Nomic => {
-            let provider = NativeNomicProvider::new(config)?;
-            provider.embed_functions(functions, cache_root, started)
+            #[cfg(not(feature = "native-nomic"))]
+            {
+                bail!(
+                    "native Nomic support is not included in this build; install with `cargo install funcvec --features native-nomic` or use `--provider lexical`"
+                );
+            }
+            #[cfg(feature = "native-nomic")]
+            {
+                let provider = NativeNomicProvider::new(config)?;
+                provider.embed_functions(functions, cache_root, started)
+            }
         }
     }
 }
@@ -139,18 +149,21 @@ fn elapsed_ms(started: Instant) -> u64 {
     started.elapsed().as_millis().try_into().unwrap_or(u64::MAX)
 }
 
+#[cfg(feature = "native-nomic")]
 #[derive(Debug, Clone)]
 struct NomicModel {
     alias: &'static str,
     model: EmbeddingModel,
 }
 
+#[cfg(feature = "native-nomic")]
 struct NativeNomicProvider {
     model: NomicModel,
-    model_cache_dir: PathBuf,
+    model_cache_dir: std::path::PathBuf,
     native_threads: Option<usize>,
 }
 
+#[cfg(feature = "native-nomic")]
 impl NativeNomicProvider {
     fn new(config: &ReportConfig) -> Result<Self> {
         let model = parse_nomic_model(config.model.as_deref())?;
@@ -250,6 +263,7 @@ impl NativeNomicProvider {
     }
 }
 
+#[cfg(feature = "native-nomic")]
 fn nomic_cache_key_seed(
     model_alias: &str,
     function: &FunctionRecord,
@@ -262,10 +276,12 @@ fn nomic_cache_key_seed(
     )
 }
 
+#[cfg(feature = "native-nomic")]
 fn nomic_embedding_text(function: &FunctionRecord) -> String {
     format!("clustering: {}", embedding_text(function))
 }
 
+#[cfg(feature = "native-nomic")]
 fn parse_nomic_model(model: Option<&str>) -> Result<NomicModel> {
     match model.unwrap_or(default_nomic_model()) {
         "nomic-v1" | "nomic-embed-text-v1" => Ok(NomicModel {
@@ -286,14 +302,15 @@ pub fn default_nomic_model() -> &'static str {
     "nomic-v1.5"
 }
 
-fn model_cache_dir(config: &ReportConfig) -> Result<PathBuf> {
+#[cfg(feature = "native-nomic")]
+fn model_cache_dir(config: &ReportConfig) -> Result<std::path::PathBuf> {
     if let Some(path) = &config.model_cache_dir {
         return Ok(path.clone());
     }
     if let Some(path) = std::env::var_os("FUNCVEC_MODEL_CACHE_DIR")
         .or_else(|| std::env::var_os("RFV_MODEL_CACHE_DIR"))
     {
-        return Ok(PathBuf::from(path));
+        return Ok(std::path::PathBuf::from(path));
     }
     let cache_dir = dirs::cache_dir()
         .context("could not determine OS cache directory; pass --model-cache-dir")?;
@@ -617,6 +634,7 @@ mod tests {
         assert!(OllamaProvider::new(&config, "nomic-embed-text").is_ok());
     }
 
+    #[cfg(feature = "native-nomic")]
     #[test]
     fn parses_native_nomic_model_aliases() {
         assert_eq!(parse_nomic_model(None).unwrap().alias, "nomic-v1.5");
@@ -633,6 +651,7 @@ mod tests {
         assert!(parse_nomic_model(Some("nomic-v1.5-q")).is_err());
     }
 
+    #[cfg(feature = "native-nomic")]
     #[test]
     fn native_nomic_embedding_text_uses_clustering_prefix() {
         let function = sample_function();
@@ -640,6 +659,7 @@ mod tests {
         assert!(text.starts_with("clustering: name: sample"));
     }
 
+    #[cfg(feature = "native-nomic")]
     #[test]
     fn native_nomic_cache_seed_versions_embedding_behavior() {
         let function = sample_function();
@@ -651,6 +671,7 @@ mod tests {
         assert!(seed.contains("function=abc123"));
     }
 
+    #[cfg(feature = "native-nomic")]
     #[test]
     fn native_nomic_smoke_test_is_explicitly_opted_in() {
         if std::env::var_os("FUNCVEC_RUN_NATIVE_MODEL_TESTS")
@@ -676,6 +697,7 @@ mod tests {
         assert_eq!(stats.dimensions, Some(768));
     }
 
+    #[cfg(feature = "native-nomic")]
     fn sample_function() -> FunctionRecord {
         FunctionRecord {
             id: "id".to_owned(),

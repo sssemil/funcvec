@@ -4,13 +4,20 @@
 symbols to discover functions, builds vectors for each function, and reports
 candidate pairs that may be worth merging or refactoring.
 
-The default mode runs local Nomic embeddings through Rust libraries. No Ollama
-daemon or external embedding API is required for the default workflow.
+The default install uses a lightweight lexical provider so `cargo install
+funcvec` works reliably on normal developer machines. A local Nomic embedding
+provider is available as an opt-in feature.
 
 ## Install
 
 ```sh
 cargo install funcvec
+```
+
+To include the native Nomic embedding provider:
+
+```sh
+cargo install funcvec --features native-nomic
 ```
 
 For local development from this repository:
@@ -39,17 +46,19 @@ Common variants:
 ```sh
 funcvec --provider none --top-k 10
 funcvec path/to/project --provider lexical --threshold 0.72
+funcvec report path/to/project --provider lexical
+funcvec eval fixtures/dupe_lab --provider lexical --threshold 0.72
 funcvec report path/to/project --provider nomic
-funcvec eval fixtures/dupe_lab --provider nomic --threshold 0.95
 ```
 
-`funcvec` downloads native Nomic model files once into a local model cache. Set
-`FUNCVEC_MODEL_CACHE_DIR` to control that location.
+When built with `native-nomic`, `funcvec` downloads native Nomic model files
+once into a local model cache. Set `FUNCVEC_MODEL_CACHE_DIR` to control that
+location.
 
 ## Providers
 
-- `nomic`: default local embedding provider.
-- `lexical`: token-overlap scoring plus lexical vectors.
+- `lexical`: default token-overlap scoring plus lexical vectors.
+- `nomic`: optional local embedding provider; install with `--features native-nomic`.
 - `none`: no semantic embeddings, useful for fast smoke checks.
 - `ollama`: use an Ollama embedding model.
 - `openai`: reserved behind explicit source-upload opt-in.

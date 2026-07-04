@@ -1,6 +1,6 @@
 [package]
 name = "funcvec-core"
-version = "0.1.1"
+version = "0.1.2"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -15,8 +15,8 @@ keywords = ["rust", "duplicates", "embeddings"]
 [dependencies]
 anyhow.workspace = true
 cargo_metadata.workspace = true
-dirs.workspace = true
-fastembed.workspace = true
+dirs = { workspace = true, optional = true }
+fastembed = { workspace = true, optional = true }
 hex.workspace = true
 lsp-types.workspace = true
 reqwest.workspace = true
@@ -28,3 +28,7 @@ walkdir.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+
+[features]
+default = []
+native-nomic = ["dep:dirs", "dep:fastembed"]

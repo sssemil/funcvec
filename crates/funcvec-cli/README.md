@@ -37,7 +37,14 @@ funcvec report path/to/project --provider nomic
 funcvec eval path/to/project --provider nomic --models nomic-v1,nomic-v1.5
 ```
 
-The default provider is native Nomic embeddings. It downloads model files once
-into a local cache and then runs without Ollama or another daemon.
+The default provider is lexical so the standard install remains lightweight.
+Native Nomic embeddings are available with:
+
+```sh
+cargo install funcvec --features native-nomic
+```
+
+When built with that feature, Nomic downloads model files once into a local
+cache and then runs without Ollama or another daemon.
 
 Set `FUNCVEC_MODEL_CACHE_DIR` to control the native model cache location.
