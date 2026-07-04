@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    fs,
     io::{BufRead, BufReader, Read, Write},
     path::{Path, PathBuf},
     process::{Child, ChildStderr, ChildStdin, ChildStdout, Command, Stdio},
@@ -295,18 +296,56 @@ fn rust_analyzer_path() -> PathBuf {
         return PathBuf::from(path);
     }
 
-    if let Ok(output) = Command::new("rustup")
-        .args(["which", "rust-analyzer"])
-        .output()
-        && output.status.success()
-    {
-        let path = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-        if !path.is_empty() {
-            return PathBuf::from(path);
+    if let Some(path) = rustup_which_rust_analyzer(&[]) {
+        return path;
+    }
+    for toolchain in ["stable", "nightly"] {
+        if let Some(path) = rustup_which_rust_analyzer(&["--toolchain", toolchain]) {
+            return path;
         }
+    }
+    if let Some(path) = find_installed_rust_analyzer() {
+        return path;
     }
 
     PathBuf::from("rust-analyzer")
+}
+
+fn rustup_which_rust_analyzer(extra_args: &[&str]) -> Option<PathBuf> {
+    let mut args = vec!["which"];
+    args.extend_from_slice(extra_args);
+    args.push("rust-analyzer");
+    let output = Command::new("rustup").args(args).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let path = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if path.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(path))
+    }
+}
+
+fn find_installed_rust_analyzer() -> Option<PathBuf> {
+    let rustup_home = std::env::var_os("RUSTUP_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".rustup")))?;
+    let toolchains = rustup_home.join("toolchains");
+    let entries = fs::read_dir(toolchains).ok()?;
+    let mut candidates = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path().join("bin").join(if cfg!(windows) {
+            "rust-analyzer.exe"
+        } else {
+            "rust-analyzer"
+        });
+        if path.is_file() {
+            candidates.push(path);
+        }
+    }
+    candidates.sort();
+    candidates.into_iter().next()
 }
 
 pub fn position_to_offset(text: &str, position: Position) -> usize {
